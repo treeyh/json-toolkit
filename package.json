@@ -1,0 +1,73 @@
+{
+  "name": "json-toolkit",
+  "displayName": "Json Toolkit",
+  "description": "A toolkit for common JSON operations.",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.104.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:json-toolkit.validateJson",
+    "onCommand:json-toolkit.prettifyJson",
+    "onCommand:json-toolkit.compressJson",
+    "onCommand:json-toolkit.unescapeJson",
+    "onCommand:json-toolkit.escapeJson",
+    "onCommand:json-toolkit.jsonToUnicode",
+    "onCommand:json-toolkit.unicodeToJson"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "json-toolkit.validateJson",
+        "title": "Json Toolkit: Validate JSON"
+      },
+      {
+        "command": "json-toolkit.prettifyJson",
+        "title": "Json Toolkit: Prettify Json"
+      },
+      {
+        "command": "json-toolkit.unescapeJson",
+        "title": "Json Toolkit: Unescape JSON"
+      },
+      {
+        "command": "json-toolkit.escapeJson",
+        "title": "Json Toolkit: Escape JSON"
+      },
+      {
+        "command": "json-toolkit.compressJson",
+        "title": "Json Toolkit: Compress JSON"
+      },
+      {
+        "command": "json-toolkit.jsonToUnicode",
+        "title": "Json Toolkit: JSON to Unicode Escaped"
+      },
+      {
+        "command": "json-toolkit.unicodeToJson",
+        "title": "Json Toolkit: Unicode Escaped to JSON"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "pnpm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "pnpm run compile && pnpm run lint",
+    "lint": "eslint src",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.104.0",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "22.x",
+    "@typescript-eslint/eslint-plugin": "^8.42.0",
+    "@typescript-eslint/parser": "^8.42.0",
+    "eslint": "^9.34.0",
+    "typescript": "^5.9.2",
+    "@vscode/test-cli": "^0.0.11",
+    "@vscode/test-electron": "^2.5.2"
+  }
+}
