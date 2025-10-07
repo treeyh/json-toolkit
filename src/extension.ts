@@ -7,6 +7,10 @@ function showMessage(message:string) {
 	vscode.window.showErrorMessage(message);
 }
 
+function showInfoMessage(message:string) {
+	vscode.window.showInformationMessage(message);
+}
+
 function getContent(): {error?: string, select?: boolean, content?: string, allContent?: string, editor?: vscode.TextEditor, range?: vscode.Range, allRange?: vscode.Range} {
 	// 1. 获取当前活动的文本编辑器
 	const editor = vscode.window.activeTextEditor;
@@ -24,7 +28,21 @@ function getContent(): {error?: string, select?: boolean, content?: string, allC
 	const range = selection.isEmpty 
 		? allRange
 		: selection;
-	return {select: selection.isEmpty, content: content, allContent: allContent, editor: editor, range: range, allRange: allRange};
+	return {select: !selection.isEmpty, content: content, allContent: allContent, editor: editor, range: range, allRange: allRange};
+}
+
+function getContentStr(content: string): string {
+	if ((content.startsWith('{') || content.startsWith('[')) && (content.endsWith('}') || content.endsWith(']'))) {
+		return '"' + content + '"';
+	}
+	return content;
+}
+
+function removeStartEndQuotationMark(content: string): string {
+	if (content.length > 3 && content.startsWith('"') && content.endsWith('"')) {
+		return content.substring(1, content.length - 1);
+	}
+	return content;
 }
 
 function prettifyJson(content: string, editor: vscode.TextEditor, range: vscode.Range) {
@@ -77,10 +95,10 @@ export function activate(context: vscode.ExtensionContext) {
 			JSON.parse(result.content!);
 			
 			// 根据是否有选择，给出更明确的提示信息
-			const message = result.select ? '文档是一个有效的JSON格式' : '选中的文本是一个有效的JSON格式';
-			showMessage(message);
+			const message = result.select ? '选中的文本是一个有效的JSON格式' : '文档是一个有效的JSON格式';
+			showInfoMessage(message);
 		} catch (error) {
-			const message = result.select ? '文档内容不是一个有效的JSON格式' : '选中的文本不是一个有效的JSON格式';
+			const message = result.select ? '选中的文本不是一个有效的JSON格式' : '文档内容不是一个有效的JSON格式';
 			showMessage(message);
 		}
 	});
@@ -122,7 +140,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 		try {
 			// 第一次解析：将JSON字符串字面量（如 "{\"key\":\"value\"}"）解析成一个普通的JS字符串（ "{"key":"value"}" ）
-			const unescapedString = JSON.parse(result.content!);
+			const unescapedString = JSON.parse(getContentStr(result.content!));
 
 			// 检查第一次解析的结果是否真的是一个字符串，防止用户对一个普通JSON对象使用此命令
 			if (typeof unescapedString !== 'string') {
@@ -134,7 +152,7 @@ export function activate(context: vscode.ExtensionContext) {
 			if (result.select) {
 				try{
 					// 第一次解析：将JSON字符串字面量（如 "{\"key\":\"value\"}"）解析成一个普通的JS字符串（ "{"key":"value"}" ）
-					const unescapedString = JSON.parse(result.allContent!);
+					const unescapedString = JSON.parse(getContentStr(result.allContent!));
 
 					// 检查第一次解析的结果是否真的是一个字符串，防止用户对一个普通JSON对象使用此命令
 					if (typeof unescapedString !== 'string') {
@@ -170,7 +188,7 @@ export function activate(context: vscode.ExtensionContext) {
 			
 			// 步骤 3: 再次stringify这个字符串，这次是为了添加外部引号并转义内部所有特殊字符
 			const finalEscapedString = JSON.stringify(minifiedJsonString);
-			replaceContent(finalEscapedString, result.editor!, result.range!);
+			replaceContent(removeStartEndQuotationMark(finalEscapedString), result.editor!, result.range!);
 
 		} catch (error) {
 			if (result.select) {
@@ -293,7 +311,7 @@ export function activate(context: vscode.ExtensionContext) {
 			// 步骤 1: 直接解析。JS引擎会自动处理 \uXXXX 序列
 			const jsonObject = JSON.parse(result.content!);
 
-			replaceContent(jsonObject, result.editor!, result.range!);
+			replaceContent(JSON.stringify(jsonObject), result.editor!, result.range!);
 		} catch (error) {
 			if (result.select) {
 				try{
