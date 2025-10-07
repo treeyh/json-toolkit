@@ -51,6 +51,13 @@
       }
     ]
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/treeyh/json-toolkit.git"
+  },
+  "bugs": {
+    "url": "https://github.com/treeyh/json-toolkit/issues"
+  },
   "scripts": {
     "vscode:prepublish": "pnpm run compile",
     "compile": "tsc -p ./",
