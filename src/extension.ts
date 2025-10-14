@@ -62,6 +62,33 @@ function replaceContent(content: string, editor: vscode.TextEditor, range: vscod
 	});
 }
 
+// 这是一个辅助函数，我们将它放在 activate 函数外部，方便复用和管理
+/**
+ * 递归地对一个对象的所有键进行排序。
+ * @param data 要排序的数据 (可以是任何类型)
+ * @returns 排序后的数据
+ */
+function sortObjectKeysRecursively(data: any): any {
+    // 如果不是对象或数组，或者为null，则直接返回，这是递归的基准条件
+    if (typeof data !== 'object' || data === null || Array.isArray(data)) {
+        // 如果是数组，我们需要递归地处理数组中的每个元素
+        if (Array.isArray(data)) {
+            return data.map(item => sortObjectKeysRecursively(item));
+        }
+        return data;
+    }
+
+    // 获取对象的所有键，并按字母顺序排序
+    const sortedKeys = Object.keys(data).sort();
+
+    // 使用 reduce 创建一个新的对象，其键是排序过的
+    return sortedKeys.reduce((acc, key) => {
+        // 对键对应的值也进行递归排序，以处理嵌套对象
+        acc[key] = sortObjectKeysRecursively(data[key]);
+        return acc;
+    }, {} as { [key: string]: any });
+}
+
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 // 插件被激活时执行的函数
@@ -214,7 +241,7 @@ export function activate(context: vscode.ExtensionContext) {
 	//================================================================
 	// 5. 注册 Compress JSON 命令 (新增的代码)
 	//================================================================
-	const compressJsonCommand = vscode.commands.registerCommand('json-toolkit.compressJson', () => {
+	const minifyJsonCommand = vscode.commands.registerCommand('json-toolkit.minifyJson', () => {
 		const result = getContent();
 		if (result.error !== undefined) {
 			showMessage(result.error);
@@ -328,10 +355,54 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 	});
 
+	//================================================================
+	// 8. 注册 Sort JSON by Keys 命令 (新增的代码)
+	//================================================================
+	const sortJsonByKeyCommand = vscode.commands.registerCommand('json-toolkit.sortJsonByKey', () => {
+		const result = getContent();
+		if (result.error !== undefined) {
+			showMessage(result.error);
+		}
+
+		try {
+			// 步骤 1: 将文本解析成JS对象
+			const jsonObject = JSON.parse(result.content!);
+			
+			// 步骤 2: 使用我们的递归函数对对象进行排序
+			const sortedJsonObject = sortObjectKeysRecursively(jsonObject);
+
+			// 步骤 3: 将排序后的对象格式化为字符串
+			const formattedSortedJson = JSON.stringify(sortedJsonObject, null, 4);
+
+			// 将原文替换成排序并格式化后的结果
+			replaceContent(formattedSortedJson, result.editor!, result.range!);
+
+		} catch (error) {
+			if (result.select) {
+				try{
+					// 步骤 1: 将文本解析成JS对象
+					const jsonObject = JSON.parse(result.allContent!);
+			
+					// 步骤 2: 使用我们的递归函数对对象进行排序
+					const sortedJsonObject = sortObjectKeysRecursively(jsonObject);
+
+					// 步骤 3: 将排序后的对象格式化为字符串
+					const formattedSortedJson = JSON.stringify(sortedJsonObject, null, 4);
+
+					replaceContent(formattedSortedJson, result.editor!, result.allRange!);
+				} catch (error) {
+					showMessage('排序失败：内容不是一个有效的JSON格式。');
+				}
+			} else {
+				showMessage('排序失败：内容不是一个有效的JSON格式。');
+			}
+		}
+	});
+
 
 	// 将命令注册到插件的上下文中，确保其生命周期由 VSCode 管理
-	context.subscriptions.push(validateCommand, prettifyCommand, compressJsonCommand, unescapeJsonCommand, escapeJsonCommand, jsonToUnicodeCommand,
-		unicodeToJsonCommand);
+	context.subscriptions.push(validateCommand, prettifyCommand, minifyJsonCommand, unescapeJsonCommand, escapeJsonCommand, jsonToUnicodeCommand,
+		unicodeToJsonCommand, sortJsonByKeyCommand);
 }
 
 // This method is called when your extension is deactivated

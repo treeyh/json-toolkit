@@ -2,7 +2,7 @@
   "name": "json-toolkit",
   "displayName": "Json Toolkit",
   "description": "A toolkit for common JSON operations.",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "publisher": "treeyh",
   "icon": "images/icon.png",
   "engines": {
@@ -14,11 +14,12 @@
   "activationEvents": [
     "onCommand:json-toolkit.validateJson",
     "onCommand:json-toolkit.prettifyJson",
-    "onCommand:json-toolkit.compressJson",
+    "onCommand:json-toolkit.minifyJson",
     "onCommand:json-toolkit.unescapeJson",
     "onCommand:json-toolkit.escapeJson",
     "onCommand:json-toolkit.jsonToUnicode",
-    "onCommand:json-toolkit.unicodeToJson"
+    "onCommand:json-toolkit.unicodeToJson",
+    "onCommand:json-toolkit.sortJsonByKey"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -40,8 +41,8 @@
         "title": "Json Toolkit: Escape JSON"
       },
       {
-        "command": "json-toolkit.compressJson",
-        "title": "Json Toolkit: Compress JSON"
+        "command": "json-toolkit.minifyJson",
+        "title": "Json Toolkit: Minify JSON"
       },
       {
         "command": "json-toolkit.jsonToUnicode",
@@ -50,6 +51,10 @@
       {
         "command": "json-toolkit.unicodeToJson",
         "title": "Json Toolkit: Unicode Escaped to JSON"
+      },
+      {
+        "command": "json-toolkit.sortJsonByKey",
+        "title": "Json Toolkit: Sort JSON by Keys"
       }
     ]
   },
