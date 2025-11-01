@@ -2,8 +2,8 @@
   "name": "json-toolkit",
   "displayName": "Json Toolkit",
   "description": "A toolkit for common JSON operations.",
-  "version": "0.0.3",
-  "publisher": "treeyh",
+  "version": "0.0.4",
+  "publisher": "Treeyh",
   "icon": "images/icon.png",
   "engines": {
     "vscode": "^1.104.0"
@@ -56,7 +56,56 @@
         "command": "json-toolkit.sortJsonByKey",
         "title": "Json Toolkit: Sort JSON by Keys"
       }
-    ]
+    ],
+    "submenus": [
+      {
+        "id": "jsonToolkit.submenu",
+        "label": "Json Toolkit"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "submenu": "jsonToolkit.submenu",
+          "group": "z_json_toolkit@1",
+          "when": "editorLangId == json || editorLangId == jsonc || editorLangId == plaintext || editorLangId == markdown || resourceExtname == .json || resourceExtname == .txt || resourceExtname == .md"
+        }
+      ],
+      "jsonToolkit.submenu": [
+        {
+          "command": "json-toolkit.prettifyJson",
+          "group": "1_format@1"
+        },
+        {
+          "command": "json-toolkit.minifyJson",
+          "group": "1_format@2"
+        },
+        {
+          "command": "json-toolkit.unescapeJson",
+          "group": "2_convert@1"
+        },
+        {
+          "command": "json-toolkit.escapeJson",
+          "group": "2_convert@2"
+        },
+        {
+          "command": "json-toolkit.jsonToUnicode",
+          "group": "2_convert@3"
+        },
+        {
+          "command": "json-toolkit.unicodeToJson",
+          "group": "2_convert@4"
+        },
+        {
+          "command": "json-toolkit.sortJsonByKey",
+          "group": "3_format@1"
+        },
+        {
+          "command": "json-toolkit.validateJson",
+          "group": "3_format@2"
+        }
+      ]
+    }
   },
   "repository": {
     "type": "git",

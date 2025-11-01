@@ -2,6 +2,8 @@
 
 Json Toolkit is an extension plug-in for processing Json data. It includes formatting, validation, sorting and other functions.
 
+[[中文](https://github.com/treeyh/json-toolkit/blob/main/README_zh-CN.md)]
+
 ## Features
 
 - Validate JSON: Check if JSON syntax is valid and show detailed error messages.
