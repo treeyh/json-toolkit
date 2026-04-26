@@ -2,7 +2,7 @@
   "name": "json-toolkit",
   "displayName": "Json Toolkit",
   "description": "A toolkit for common JSON operations.",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "publisher": "Treeyh",
   "icon": "images/icon.png",
   "engines": {
