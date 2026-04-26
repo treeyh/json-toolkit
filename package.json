@@ -26,7 +26,7 @@
     "commands": [
       {
         "command": "json-toolkit.validateJson",
-        "title": "Json Toolkit: Validate JSON"
+        "title": "Json Toolkit: Validate Json"
       },
       {
         "command": "json-toolkit.prettifyJson",
@@ -34,27 +34,27 @@
       },
       {
         "command": "json-toolkit.unescapeJson",
-        "title": "Json Toolkit: Unescape JSON"
+        "title": "Json Toolkit: Unescape Json"
       },
       {
         "command": "json-toolkit.escapeJson",
-        "title": "Json Toolkit: Escape JSON"
+        "title": "Json Toolkit: Escape Json"
       },
       {
         "command": "json-toolkit.minifyJson",
-        "title": "Json Toolkit: Minify JSON"
+        "title": "Json Toolkit: Minify Json"
       },
       {
         "command": "json-toolkit.jsonToUnicode",
-        "title": "Json Toolkit: JSON to Unicode Escaped"
+        "title": "Json Toolkit: Json to Unicode Escaped"
       },
       {
         "command": "json-toolkit.unicodeToJson",
-        "title": "Json Toolkit: Unicode Escaped to JSON"
+        "title": "Json Toolkit: Unicode Escaped to Json"
       },
       {
         "command": "json-toolkit.sortJsonByKey",
-        "title": "Json Toolkit: Sort JSON by Keys"
+        "title": "Json Toolkit: Sort Json by Keys"
       }
     ],
     "submenus": [
