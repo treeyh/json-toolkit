@@ -2,6 +2,7 @@
 // Import the module and reference it with the alias vscode in your code below
 // 导入 vscode 模块，这是与 VSCode API 交互的入口
 import * as vscode from 'vscode';
+import * as ops from './json-ops';
 
 function showMessage(message:string) {
 	vscode.window.showErrorMessage(message);
@@ -31,62 +32,12 @@ function getContent(): {error?: string, select?: boolean, content?: string, allC
 	return {select: !selection.isEmpty, content: content, allContent: allContent, editor: editor, range: range, allRange: allRange};
 }
 
-function getContentStr(content: string): string {
-	if ((content.startsWith('{') || content.startsWith('[')) && (content.endsWith('}') || content.endsWith(']'))) {
-		return '"' + content + '"';
-	}
-	return content;
-}
-
-function removeStartEndQuotationMark(content: string): string {
-	if (content.length > 3 && content.startsWith('"') && content.endsWith('"')) {
-		return content.substring(1, content.length - 1);
-	}
-	return content;
-}
-
-function prettifyJson(content: string, editor: vscode.TextEditor, range: vscode.Range) {
-	// 先解析，确保是合法的 JSON
-	const parsedJson = JSON.parse(content);
-	// 再将其格式化。JSON.stringify的第三个参数是缩进空格数，这里用2个空格。
-	const formattedJson = JSON.stringify(parsedJson, null, 4);
-
-	replaceContent(formattedJson, editor, range);
-}
-
 function replaceContent(content: string, editor: vscode.TextEditor, range: vscode.Range) {
 	// 使用 editor.edit() 来修改文档内容
 	editor.edit(editBuilder => {
 		// 用格式化后的文本替换掉原始范围内的文本
 		editBuilder.replace(range, content);
 	});
-}
-
-// 这是一个辅助函数，我们将它放在 activate 函数外部，方便复用和管理
-/**
- * 递归地对一个对象的所有键进行排序。
- * @param data 要排序的数据 (可以是任何类型)
- * @returns 排序后的数据
- */
-function sortObjectKeysRecursively(data: any): any {
-    // 如果不是对象或数组，或者为null，则直接返回，这是递归的基准条件
-    if (typeof data !== 'object' || data === null || Array.isArray(data)) {
-        // 如果是数组，我们需要递归地处理数组中的每个元素
-        if (Array.isArray(data)) {
-            return data.map(item => sortObjectKeysRecursively(item));
-        }
-        return data;
-    }
-
-    // 获取对象的所有键，并按字母顺序排序
-    const sortedKeys = Object.keys(data).sort();
-
-    // 使用 reduce 创建一个新的对象，其键是排序过的
-    return sortedKeys.reduce((acc, key) => {
-        // 对键对应的值也进行递归排序，以处理嵌套对象
-        acc[key] = sortObjectKeysRecursively(data[key]);
-        return acc;
-    }, {} as { [key: string]: any });
 }
 
 // This method is called when your extension is activated
@@ -119,7 +70,9 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 		// 使用 try-catch 结构来判断是否为有效的 JSON
 		try {
-			JSON.parse(result.content!);
+			if (!ops.isValidJson(result.content!)) {
+				throw new Error('Invalid JSON');
+			}
 			
 			// 根据是否有选择，给出更明确的提示信息
 			const message = result.select ? '选中的文本是一个有效的JSON格式' : '文档是一个有效的JSON格式';
@@ -141,11 +94,11 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 		// 使用 try-catch 结构来判断是否为有效的 JSON
 		try {
-			prettifyJson(result.content!, result.editor!, result.range!);
+			replaceContent(ops.prettify(result.content!), result.editor!, result.range!);
 		} catch (error) {
 			if (result.select) {
 				try{
-					prettifyJson(result.allContent!, result.editor!, result.allRange!);
+					replaceContent(ops.prettify(result.allContent!), result.editor!, result.allRange!);
 				} catch (error) {
 					showMessage('格式化失败：内容不是一个有效的JSON格式');
 				}
@@ -166,31 +119,23 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 
 		try {
-			// 第一次解析：将JSON字符串字面量（如 "{\"key\":\"value\"}"）解析成一个普通的JS字符串（ "{"key":"value"}" ）
-			const unescapedString = JSON.parse(getContentStr(result.content!));
-
-			// 检查第一次解析的结果是否真的是一个字符串，防止用户对一个普通JSON对象使用此命令
-			if (typeof unescapedString !== 'string') {
-				showMessage('去转义失败：内容是有效的JSON，但它不是一个需要去转义的字符串。');
-				return;
-			}
-			replaceContent(unescapedString, result.editor!, result.range!);
+			replaceContent(ops.unescape(result.content!), result.editor!, result.range!);
 		} catch (error) {
 			if (result.select) {
 				try{
-					// 第一次解析：将JSON字符串字面量（如 "{\"key\":\"value\"}"）解析成一个普通的JS字符串（ "{"key":"value"}" ）
-					const unescapedString = JSON.parse(getContentStr(result.allContent!));
-
-					// 检查第一次解析的结果是否真的是一个字符串，防止用户对一个普通JSON对象使用此命令
-					if (typeof unescapedString !== 'string') {
+					replaceContent(ops.unescape(result.allContent!), result.editor!, result.allRange!);
+				} catch (error) {
+					if (error instanceof Error && error.message === 'Unescaped value is not a string') {
 						showMessage('去转义失败：内容是有效的JSON，但它不是一个需要去转义的字符串。');
 						return;
 					}
-					replaceContent(unescapedString, result.editor!, result.allRange!);
-				} catch (error) {
 					showMessage('去转义失败：文本不是一个有效的、被转义的JSON字符串。');
 				}
 			} else {
+				if (error instanceof Error && error.message === 'Unescaped value is not a string') {
+					showMessage('去转义失败：内容是有效的JSON，但它不是一个需要去转义的字符串。');
+					return;
+				}
 				showMessage('去转义失败：文本不是一个有效的、被转义的JSON字符串。');
 			}
 		}
@@ -207,28 +152,12 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 
 		try {
-			// 步骤 1: 先将输入文本解析为JS对象，这一步可以验证其有效性并去除所有格式（换行、空格）
-			const jsonObject = JSON.parse(result.content!);
-			
-			// 步骤 2: 将JS对象转换成一个紧凑的、单行的JSON字符串
-			const minifiedJsonString = JSON.stringify(jsonObject);
-			
-			// 步骤 3: 再次stringify这个字符串，这次是为了添加外部引号并转义内部所有特殊字符
-			const finalEscapedString = JSON.stringify(minifiedJsonString);
-			replaceContent(removeStartEndQuotationMark(finalEscapedString), result.editor!, result.range!);
+			replaceContent(ops.escape(result.content!), result.editor!, result.range!);
 
 		} catch (error) {
 			if (result.select) {
 				try{
-					// 步骤 1: 先将输入文本解析为JS对象，这一步可以验证其有效性并去除所有格式（换行、空格）
-					const jsonObject = JSON.parse(result.allContent!);
-					
-					// 步骤 2: 将JS对象转换成一个紧凑的、单行的JSON字符串
-					const minifiedJsonString = JSON.stringify(jsonObject);
-					
-					// 步骤 3: 再次stringify这个字符串，这次是为了添加外部引号并转义内部所有特殊字符
-					const finalEscapedString = JSON.stringify(minifiedJsonString);
-					replaceContent(finalEscapedString, result.editor!, result.allRange!);
+					replaceContent(ops.escape(result.allContent!), result.editor!, result.allRange!);
 				} catch (error) {
 					showMessage('转义失败：内容不是一个有效的JSON格式。');
 				}
@@ -248,27 +177,11 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 
 		try {
-			// 步骤 1: 将文本解析成JS对象，以验证其有效性并去除现有格式
-			const jsonObject = JSON.parse(result.content!);
-			
-			// 步骤 2: 将JS对象转换成一个紧凑的、单行的JSON字符串
-			// JSON.stringify 在不带额外参数时，默认输出的就是压缩格式
-			const compressedJson = JSON.stringify(jsonObject);
-
-			// 将原文替换成压缩后的结果
-			replaceContent(compressedJson, result.editor!, result.range!);
+			replaceContent(ops.minify(result.content!), result.editor!, result.range!);
 		} catch (error) {
 			if (result.select) {
 				try{
-					// 步骤 1: 将文本解析成JS对象，以验证其有效性并去除现有格式
-					const jsonObject = JSON.parse(result.content!);
-					
-					// 步骤 2: 将JS对象转换成一个紧凑的、单行的JSON字符串
-					// JSON.stringify 在不带额外参数时，默认输出的就是压缩格式
-					const compressedJson = JSON.stringify(jsonObject);
-
-					// 将原文替换成压缩后的结果
-					replaceContent(compressedJson, result.editor!, result.allRange!);
+					replaceContent(ops.minify(result.content!), result.editor!, result.allRange!);
 				} catch (error) {
 					showMessage('压缩失败：内容不是一个有效的JSON格式。');
 				}
@@ -288,33 +201,11 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 
 		try {
-			// 步骤 1: 验证并解析JSON
-			const jsonObject = JSON.parse(result.content!);
-			// 步骤 2: 将其转为紧凑的字符串，方便处理
-			let jsonString = JSON.stringify(jsonObject);
-
-			// 步骤 3: 使用正则表达式匹配所有非ASCII字符并进行转换
-			jsonString = jsonString.replace(/[^\x00-\x7F]/g, (char) => {
-				// 将字符的Unicode码点转为16进制字符串，并在前面补0直到4位
-				return '\\u' + ('0000' + char.charCodeAt(0).toString(16)).slice(-4);
-			});
-			replaceContent(jsonString, result.editor!, result.range!);
+			replaceContent(ops.jsonToUnicode(result.content!), result.editor!, result.range!);
 		} catch (error) {
 			if (result.select) {
 				try{
-					// 步骤 1: 验证并解析JSON
-					const jsonObject = JSON.parse(result.allContent!);
-					// 步骤 2: 将其转为紧凑的字符串，方便处理
-					let jsonString = JSON.stringify(jsonObject);
-
-					// 步骤 3: 使用正则表达式匹配所有非ASCII字符并进行转换
-					jsonString = jsonString.replace(/[^\x00-\x7F]/g, (char) => {
-						// 将字符的Unicode码点转为16进制字符串，并在前面补0直到4位
-						return '\\u' + ('0000' + char.charCodeAt(0).toString(16)).slice(-4);
-					});
-
-					// 将原文替换成压缩后的结果
-					replaceContent(jsonString, result.editor!, result.allRange!);
+					replaceContent(ops.jsonToUnicode(result.allContent!), result.editor!, result.allRange!);
 				} catch (error) {
 					showMessage('转换为Unicode失败：内容不是一个有效的JSON格式。');
 				}
@@ -335,17 +226,11 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 
 		try {
-			// 步骤 1: 直接解析。JS引擎会自动处理 \uXXXX 序列
-			const jsonObject = JSON.parse(result.content!);
-
-			replaceContent(JSON.stringify(jsonObject), result.editor!, result.range!);
+			replaceContent(ops.unicodeFromJson(result.content!), result.editor!, result.range!);
 		} catch (error) {
 			if (result.select) {
 				try{
-					// 步骤 1: 直接解析。JS引擎会自动处理 \uXXXX 序列
-					const jsonObject = JSON.parse(result.allContent!);
-
-					replaceContent(jsonObject, result.editor!, result.allRange!);
+					replaceContent(ops.unicodeFromJson(result.allContent!), result.editor!, result.allRange!);
 				} catch (error) {
 					showMessage('从Unicode转换失败：内容不是一个有效的JSON格式。');
 				}
@@ -365,31 +250,12 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 
 		try {
-			// 步骤 1: 将文本解析成JS对象
-			const jsonObject = JSON.parse(result.content!);
-			
-			// 步骤 2: 使用我们的递归函数对对象进行排序
-			const sortedJsonObject = sortObjectKeysRecursively(jsonObject);
-
-			// 步骤 3: 将排序后的对象格式化为字符串
-			const formattedSortedJson = JSON.stringify(sortedJsonObject, null, 4);
-
-			// 将原文替换成排序并格式化后的结果
-			replaceContent(formattedSortedJson, result.editor!, result.range!);
+			replaceContent(ops.sortByKey(result.content!), result.editor!, result.range!);
 
 		} catch (error) {
 			if (result.select) {
 				try{
-					// 步骤 1: 将文本解析成JS对象
-					const jsonObject = JSON.parse(result.allContent!);
-			
-					// 步骤 2: 使用我们的递归函数对对象进行排序
-					const sortedJsonObject = sortObjectKeysRecursively(jsonObject);
-
-					// 步骤 3: 将排序后的对象格式化为字符串
-					const formattedSortedJson = JSON.stringify(sortedJsonObject, null, 4);
-
-					replaceContent(formattedSortedJson, result.editor!, result.allRange!);
+					replaceContent(ops.sortByKey(result.allContent!), result.editor!, result.allRange!);
 				} catch (error) {
 					showMessage('排序失败：内容不是一个有效的JSON格式。');
 				}
